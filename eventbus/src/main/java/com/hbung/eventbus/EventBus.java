@@ -248,6 +248,10 @@ public class EventBus {
         post(event, SubscriberMethod.DEFAULT_TAG);
     }
 
+    public void post(String tag) {
+        post(EventData.DEFAULT_EVENT, tag);
+    }
+
     /**
      * Posts the given event to the event bus.
      */
@@ -513,7 +517,11 @@ public class EventBus {
 
     void invokeSubscriber(Subscription subscription, Object event) {
         try {
-            subscription.subscriberMethod.method.invoke(subscription.subscriber, event);
+            if (event != null && event.equals(EventData.DEFAULT_EVENT)) {
+                subscription.subscriberMethod.method.invoke(subscription.subscriber);
+            } else {
+                subscription.subscriberMethod.method.invoke(subscription.subscriber, event);
+            }
         } catch (InvocationTargetException e) {
             handleSubscriberException(subscription, event, e.getCause());
         } catch (IllegalAccessException e) {

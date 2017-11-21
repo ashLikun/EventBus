@@ -162,21 +162,22 @@ class SubscriberMethodFinder {
             int modifiers = method.getModifiers();
             if ((modifiers & Modifier.PUBLIC) != 0 && (modifiers & MODIFIERS_IGNORE) == 0) {
                 Class<?>[] parameterTypes = method.getParameterTypes();
-                if (parameterTypes.length == 1) {
-                    Subscribe subscribeAnnotation = method.getAnnotation(Subscribe.class);
-                    if (subscribeAnnotation != null) {
-                        Class<?> eventType = parameterTypes[0];
-                        if (findState.checkAdd(method, eventType)) {
-                            ThreadMode threadMode = subscribeAnnotation.threadMode();
-                            findState.subscriberMethods.add(new SubscriberMethod(method, eventType, threadMode,
-                                    subscribeAnnotation.tag(),
-                                    subscribeAnnotation.priority(), subscribeAnnotation.sticky()));
-                        }
+
+                Subscribe subscribeAnnotation = method.getAnnotation(Subscribe.class);
+                if (subscribeAnnotation != null) {
+                    Class<?> eventType = null;
+                    if (parameterTypes.length == 1) {
+                        eventType = parameterTypes[0];
+                    }else{
+                        //添加默认参数为String
+                        eventType = String.class;
                     }
-                } else if (strictMethodVerification && method.isAnnotationPresent(Subscribe.class)) {
-                    String methodName = method.getDeclaringClass().getName() + "." + method.getName();
-                    throw new EventBusException("@Subscribe method " + methodName +
-                            "must have exactly 1 parameter but has " + parameterTypes.length);
+                    if (findState.checkAdd(method, eventType)) {
+                        ThreadMode threadMode = subscribeAnnotation.threadMode();
+                        findState.subscriberMethods.add(new SubscriberMethod(method, eventType, threadMode,
+                                subscribeAnnotation.tag(),
+                                subscribeAnnotation.priority(), subscribeAnnotation.sticky()));
+                    }
                 }
             } else if (strictMethodVerification && method.isAnnotationPresent(Subscribe.class)) {
                 String methodName = method.getDeclaringClass().getName() + "." + method.getName();

@@ -19,7 +19,12 @@ public class TestEvent {
     }
 
     @Subscribe(tag = "likun2")
-    public void aaa(Integer aaa) {
-        Log.e("aaaaaa", String.valueOf(aaa));
+    public void aaa() {
+        Log.e("aaaaaa", "assssssssssssssssssssss");
+    }
+
+    @Subscribe(tag = "likun3")
+    public void aaaa(String aaa) {
+        Log.e("aaaaaa", "assssssssssssssssssssss");
     }
 }

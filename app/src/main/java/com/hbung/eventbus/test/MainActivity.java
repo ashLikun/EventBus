@@ -17,6 +17,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClick(View view) {
-        EventBus.getDefault().post(11111, "likun2");
+        EventBus.getDefault().post("likun2");
+    }
+
+    public void onClick1(View view) {
+        EventBus.getDefault().post("aaaa","likun3");
     }
 }

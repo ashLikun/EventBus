@@ -28,6 +28,10 @@ public final class EventData {
      * 默认的tag
      */
     public static final String DEFAULT_TAG = "default_tag";
+    /**
+     * 默认的方法参数
+     */
+    public static final String DEFAULT_EVENT = "-8888888810086";
 
     /**
      * 函数的tag
@@ -43,7 +47,7 @@ public final class EventData {
 
     @Override
     public String toString() {
-        return "EventType [paramClass=" + event.getClass().getName() + ", tag=" + tag + "]";
+        return "EventType [paramClass=" + (event != null ? event.getClass().getName() : "null") + ", tag=" + tag + "]";
     }
 
     @Override
