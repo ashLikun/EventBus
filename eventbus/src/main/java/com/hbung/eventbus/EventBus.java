@@ -49,10 +49,18 @@ public class EventBus {
     static volatile EventBus defaultInstance;
 
     private static final EventBusBuilder DEFAULT_BUILDER = new EventBusBuilder();
+    //参数类型缓存，为了实现基类接收到订阅信息
     private static final Map<Class<?>, List<Class<?>>> eventTypesCache = new HashMap<>();
 
-    private final Map<Class<?>, CopyOnWriteArrayList<Subscription>> subscriptionsByEventType;
+    /**
+     * 缓存订阅类型
+     * 第一个map的key是方法参数的class
+     * 第二个map的key是方法的tag
+     */
+    private final Map<Class<?>, Map<String, CopyOnWriteArrayList<Subscription>>> subscriptionsByEventType;
+    //缓存注册订阅者的全部订阅类型
     private final Map<Object, List<Class<?>>> typesBySubscriber;
+    //粘性的事件
     private final Map<Class<?>, EventData> stickyEvents;
 
     private final ThreadLocal<PostingThreadState> currentPostingThreadState = new ThreadLocal<PostingThreadState>() {
@@ -152,10 +160,15 @@ public class EventBus {
     private void subscribe(Object subscriber, SubscriberMethod subscriberMethod) {
         Class<?> eventType = subscriberMethod.eventType;
         Subscription newSubscription = new Subscription(subscriber, subscriberMethod);
-        CopyOnWriteArrayList<Subscription> subscriptions = subscriptionsByEventType.get(eventType);
+        Map<String, CopyOnWriteArrayList<Subscription>> subscriptionsByTag = subscriptionsByEventType.get(eventType);
+        if (subscriptionsByTag == null) {
+            subscriptionsByTag = new HashMap<>();
+            subscriptionsByEventType.put(eventType, subscriptionsByTag);
+        }
+        CopyOnWriteArrayList<Subscription> subscriptions = subscriptionsByTag.get(subscriberMethod.tag);
         if (subscriptions == null) {
             subscriptions = new CopyOnWriteArrayList<>();
-            subscriptionsByEventType.put(eventType, subscriptions);
+            subscriptionsByTag.put(subscriberMethod.tag, subscriptions);
         } else {
             if (subscriptions.contains(newSubscription)) {
                 throw new EventBusException("Subscriber " + subscriber.getClass() + " already registered to event "
@@ -201,8 +214,9 @@ public class EventBus {
 
     private void checkPostStickyEventToSubscription(Subscription newSubscription, EventData stickyEvent) {
         if (stickyEvent != null) {
-            if (TextUtils.equals(newSubscription.subscriberMethod.tag, stickyEvent.tag))
+            if (TextUtils.equals(newSubscription.subscriberMethod.tag, stickyEvent.tag)) {
                 postToSubscription(newSubscription, stickyEvent, Looper.getMainLooper() == Looper.myLooper());
+            }
         }
     }
 
@@ -214,16 +228,20 @@ public class EventBus {
      * Only updates subscriptionsByEventType, not typesBySubscriber! Caller must update typesBySubscriber.
      */
     private void unsubscribeByEventType(Object subscriber, Class<?> eventType) {
-        List<Subscription> subscriptions = subscriptionsByEventType.get(eventType);
-        if (subscriptions != null) {
-            int size = subscriptions.size();
-            for (int i = 0; i < size; i++) {
-                Subscription subscription = subscriptions.get(i);
-                if (subscription.subscriber == subscriber) {
-                    subscription.active = false;
-                    subscriptions.remove(i);
-                    i--;
-                    size--;
+        Map<String, CopyOnWriteArrayList<Subscription>> subscriptionsByTag = subscriptionsByEventType.get(eventType);
+
+        if (subscriptionsByTag != null) {
+            for (Map.Entry<String, CopyOnWriteArrayList<Subscription>> tags : subscriptionsByTag.entrySet()) {
+                CopyOnWriteArrayList<Subscription> subscriptions = tags.getValue();
+                int size = subscriptions.size();
+                for (int i = 0; i < size; i++) {
+                    Subscription subscription = subscriptions.get(i);
+                    if (subscription.subscriber == subscriber) {
+                        subscription.active = false;
+                        subscriptions.remove(i);
+                        i--;
+                        size--;
+                    }
                 }
             }
         }
@@ -372,11 +390,11 @@ public class EventBus {
             int countTypes = eventTypes.size();
             for (int h = 0; h < countTypes; h++) {
                 Class<?> clazz = eventTypes.get(h);
-                CopyOnWriteArrayList<Subscription> subscriptions;
+                Map<String, CopyOnWriteArrayList<Subscription>> subscriptionsByTags;
                 synchronized (this) {
-                    subscriptions = subscriptionsByEventType.get(clazz);
+                    subscriptionsByTags = subscriptionsByEventType.get(clazz);
                 }
-                if (subscriptions != null && !subscriptions.isEmpty()) {
+                if (subscriptionsByTags != null && !subscriptionsByTags.isEmpty()) {
                     return true;
                 }
             }
@@ -409,9 +427,12 @@ public class EventBus {
     }
 
     private boolean postSingleEventForEventType(EventData eventType, PostingThreadState postingState, Class<?> eventClass) {
-        CopyOnWriteArrayList<Subscription> subscriptions;
+        CopyOnWriteArrayList<Subscription> subscriptions = null;
         synchronized (this) {
-            subscriptions = subscriptionsByEventType.get(eventClass);
+            Map<String, CopyOnWriteArrayList<Subscription>> subscriptionTags = subscriptionsByEventType.get(eventClass);
+            if (subscriptionTags != null && !subscriptionTags.isEmpty()) {
+                subscriptions = subscriptionTags.get(eventType.tag);
+            }
         }
 
         if (subscriptions != null && !subscriptions.isEmpty()) {
@@ -422,7 +443,7 @@ public class EventBus {
                     resault = true;
                     postingState.event = eventType.event;
                     postingState.subscription = subscription;
-                    boolean aborted = false;
+                    boolean aborted;
                     try {
                         postToSubscription(subscription, eventType.event, postingState.isMainThread);
                         aborted = postingState.canceled;
@@ -517,7 +538,8 @@ public class EventBus {
 
     void invokeSubscriber(Subscription subscription, Object event) {
         try {
-            if (event != null && event.equals(EventData.DEFAULT_EVENT)) {
+            if (EventData.DEFAULT_EVENT.equals(event)) {
+                //如果是默认的事件类型，代表无参数
                 subscription.subscriberMethod.method.invoke(subscription.subscriber);
             } else {
                 subscription.subscriberMethod.method.invoke(subscription.subscriber, event);

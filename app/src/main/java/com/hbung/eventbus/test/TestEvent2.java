@@ -13,18 +13,18 @@ import com.hbung.eventbus.Subscribe;
  * 功能介绍：
  */
 
-public class TestEvent {
-    public TestEvent() {
+public class TestEvent2 {
+    public TestEvent2() {
         EventBus.getDefault().register(this);
     }
 
-    @Subscribe(tag = "likun2")
+    @Subscribe(tag = "likun2", priority = 1)
     public void aaa() {
-        Log.e("TestEvent", "likun2");
+        Log.e("TestEvent2", "likun2");
     }
 
     @Subscribe(tag = "likun3")
     public void aaaa(String aaa) {
-        Log.e("TestEvent", "likun3");
+        Log.e("TestEvent2", "likun3");
     }
 }
