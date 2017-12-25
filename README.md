@@ -1,4 +1,4 @@
-[![Release](https://jitpack.io/v/ashLikun/eventbus.svg)](https://jitpack.io/#ashLikun/eventbus)
+[![Release](https://jitpack.io/v/ashLikun/EventBus.svg)](https://jitpack.io/#ashLikun/EventBus)
 
 
 
