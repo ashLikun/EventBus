@@ -38,13 +38,13 @@ dependencies {
     public void aaa(String event) {
     }
  ### 混淆
- #EventBus3.0
--keepattributes *Annotation*
--keepclassmembers class ** {
-    @com.ashlikun.eventbus.Subscribe <methods>;
-}
--keep enum com.ashlikun.eventbus.ThreadMode { *; }
-        # Only required if you use AsyncExecutor
--keepclassmembers class * extends com.ashlikun.eventbus.util.ThrowableFailureEvent {
-    <init>(java.lang.Throwable);
-}
+	 #EventBus3.0
+	-keepattributes *Annotation*
+	-keepclassmembers class ** {
+	    @com.ashlikun.eventbus.Subscribe <methods>;
+	}
+	-keep enum com.ashlikun.eventbus.ThreadMode { *; }
+		# Only required if you use AsyncExecutor
+	-keepclassmembers class * extends com.ashlikun.eventbus.util.ThrowableFailureEvent {
+	    <init>(java.lang.Throwable);
+	}
